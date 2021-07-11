@@ -1,0 +1,426 @@
+<html>
+	<head>
+		<title>Puzzle</title>
+		<meta charset = "utf-8" />
+		<style type = "text/css">
+			@import url(https://fonts.googleapis.com/css?family=Orbitron);
+			@import url(https://fonts.googleapis.com/css?family=Raleway);
+		
+			div, hr{
+				position:absolute
+			}
+			
+			body{
+				overflow:hidden
+			}
+			
+			hr{
+				border-style:solid;
+				border-width:8px;
+				border-radius:8px
+			}
+			
+			span{
+				font-family:Orbitron
+			}
+			
+			.linha1, .linha5, .linha10{
+				transform:rotate(-45deg)
+			}
+			.linha2, .linha4, .linha9{
+				transform:rotate(45deg)
+			}
+			.linha1, .linha2, .linha9, .linha10{
+				width:200px
+			}
+			.linha1, .linha2{
+				top:100px
+			}
+			.linha2{
+				left:150px
+			}
+			.linha3, .linha8{
+				left:37px;
+				width:280px
+			}
+			.linha3{
+				top:172px
+			}
+			.linha4, .linha5{
+				top:313px;
+				left:-20px;
+				width:400px
+			}
+			.linha6, .linha7{
+				transform:rotate(90deg);
+				top:312px;
+				width:278px
+			}
+			.linha6{
+				left:-102px
+			}
+			.linha7{
+				left:183px
+			}
+			.linha8{
+				top:455px
+			}
+			.linha9, .linha10{
+				top:526px
+			}
+			.linha9{
+				left:8px
+			}
+			.linha10{
+				left:150px
+			}
+			
+			.vertice{
+				width:26px;
+				height:26px;
+				border-style:solid;
+				border-width:6px;
+				border-radius:50%
+			}
+			
+			#vertice2, #vertice3{
+				top:170px
+			}
+			#vertice4, #vertice5{
+				top:450px
+			}
+			#vertice1, #vertice6{
+				left:168
+			}
+			#vertice2, #vertice4{
+				left:30px
+			}
+			#vertice3, #vertice5{
+				left:310px
+			}
+			#vertice1{
+				top:22px
+			}
+			#vertice6{
+				top:600px
+			}
+			
+			.informacoes{
+				top:22px;
+				left:400px;
+				font-family:Raleway;
+				cursor:default
+			}
+		</style>
+		<style type = "text/css" id = "cores"></style>
+		<style type = "text/css" id = "botaoAtivo1"></style>
+		<style type = "text/css" id = "botaoAtivo2"></style>
+		<style type = "text/css" id = "botaoAtivo3"></style>
+		<style type = "text/css" id = "botaoAtivo4"></style>
+		<style type = "text/css" id = "botaoAtivo5"></style>
+		<style type = "text/css" id = "botaoAtivo6"></style>
+		<script type = "text/javascript" language = "JavaScript">
+			var cores = {
+				"fundo" : ["E2E2E2", "384D48"],
+				"texto" : ["384D48", "E2E2E2"],
+				"linhaAtivo" : ["727359", "ACAD94"],
+				"linhaInativo" : ["D8D4D5", "455F59"],
+				"botaoIn" : ["6E7271", "A1A5A4"],
+				"botaoOut" : ["BBB4B6", "2B3B37"],
+				"botaoUltimo" : ["ACAD94", "727359"],
+				"dica" : ["A5A497", "798677"]
+			}
+			
+			var marcados, linhas, segundos, segundosAnt, estilo;
+			
+			var tentativas = 0;
+			var sucessos = 0;
+			var tentativasUnicas = new Array();
+			var sucessosUnicos = new Array();
+			var terminou = false;
+			var figura = 1;
+		
+			window.onload = function() {
+				novo();
+				colorir();
+				segundos = 10;
+				segundosAnt = segundos;
+				novo();
+			}
+			
+			function novo() {
+				marcados = new Array();
+				linhas = new Array();
+				for (var i = 1; i <= 6; i++) document.getElementById("botaoAtivo" + i).innerHTML = "";
+				for (var i = 1; i <= 10; i++) document.getElementById("linha" + i).style = "";
+				if (figura == 2) limpaLinha();
+				else document.getElementById("vertice6").style.display = "block";
+				segundos = segundosAnt;
+				document.getElementById("cronometro_m").innerHTML = document.getElementById("cronometro_i").checked ? segundos : 0;
+			}
+			
+			function colorir() {
+				var escuro = document.getElementById("modoescuro").checked ? 1 : 0;
+				document.getElementById("cores").innerHTML = "body{background-color:#" + cores["fundo"][escuro] + ";color:#" + cores["texto"][escuro] + "}" +
+					"hr{background-color:#" + cores["linhaInativo"][escuro] + ";border-color:#" + cores["linhaInativo"][escuro] + "}" +
+					".vertice{background-color:#" + cores["botaoIn"][escuro] + ";border-color:#" + cores["botaoOut"][escuro] + ";cursor:pointer}" +
+					".vertice:hover{background-color:#" + cores["botaoOut"][escuro] + ";border-color:#" + cores["botaoIn"][escuro] + "}";
+				for (var i = 0; i < marcados.length; i++) colorirBotao(marcados[i]);
+				for (var i = 0; i < linhas.length; i++) colorirLinha(linhas[i]);
+			}
+			
+			function main(num) {
+				if (terminou) {
+					novo();
+					terminou = false;
+				}
+				if (marcados.length == 0 && document.getElementById("cronometro_i").checked) cronometroMain();
+				if (marcados[marcados.length - 1] != num) {
+					marcados[marcados.length] = num;
+					colorirBotao(num);
+					if (marcados.length > 1) {
+						var erro = false;
+						var ant = marcados[marcados.length - 2];
+						if (getLinha(num, ant) > 0) criarLinha(getLinha(num, ant));
+						else {
+							fim(1);
+							erro = true;
+						}
+						if (!erro) {
+							if ((figura == 1 && linhas.length == 10) || (figura == 2 && linhas.length == 8)) fim(0);
+							else if (figura == 1) {
+								var limite = [2, 3, 3, 3, 3, 2];
+								var contagem = new Array();
+								for (var i = 0; i < marcados.length; i++) contagem["c" + marcados[i]] = 0;
+								for (var i = 0; i < marcados.length; i++) contagem["c" + marcados[i]]++;
+								for (x in contagem) {
+									var id = parseInt(x.substring(1));
+									if (id == num && contagem[x] >= limite[num - 1]) {
+										fim(3);
+										break;
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+			
+			function criaLinhaImaginaria(num) {
+				var linha;
+				var escuro = document.getElementById("modoescuro").checked ? 1 : 0;
+				if (document.getElementById("dicas").checked && marcados.length > 0 && !terminou) {
+					var ant = marcados[marcados.length - 1];
+					linha = getLinha(num, ant);
+					if (linha > 0) {
+						estilo = [linha, document.getElementById("linha" + linha).style];
+						if (linhas.indexOf(linha) == -1) {
+							document.getElementById("linha" + linha).style.backgroundColor = cores["dica"][escuro];
+							document.getElementById("linha" + linha).style.borderColor = cores["dica"][escuro];
+						}
+					}
+				}
+			}
+			
+			function destroiLinhaImaginaria() {
+				try {
+					document.getElementById("linha" + estilo[0]).style = estilo[1];
+				} catch(err) {}
+				for (var i = 0; i < linhas.length; i++) colorirLinha(linhas[i]);
+			}
+			
+			function getLinha(num, ant) {
+				var linha = 0;
+				if ((num == 1 && ant == 2) || (num == 2 && ant == 1)) linha = 1;
+				else if ((num == 1 && ant == 3) || (num == 3 && ant == 1)) linha = 2;
+				else if ((num == 2 && ant == 3) || (num == 3 && ant == 2)) linha = 3;
+				else if ((num == 2 && ant == 4) || (num == 4 && ant == 2)) linha = 6;
+				else if ((num == 2 && ant == 5) || (num == 5 && ant == 2)) linha = 4;
+				else if ((num == 3 && ant == 4) || (num == 4 && ant == 3)) linha = 5;
+				else if ((num == 3 && ant == 5) || (num == 5 && ant == 3)) linha = 7;
+				else if (figura == 1 && ((num == 4 && ant == 6) || (num == 6 && ant == 4))) linha = 9;
+				else if ((num == 5 && ant == 4) || (num == 4 && ant == 5)) linha = 8;
+				else if (figura == 1 && ((num == 5 && ant == 6) || (num == 6 && ant == 5))) linha = 10;
+				return linha;
+			}
+			
+			function criarLinha(num) {
+				if (linhas.indexOf(num) == -1) {
+					linhas[linhas.length] = num;
+					colorirLinha(num);
+				} else fim(2);
+			}
+			
+			function colorirBotao(num) {
+				var escuro = document.getElementById("modoescuro").checked ? 1 : 0;
+				document.getElementById("botaoAtivo" + num).innerHTML = "#vertice" + num + "{background-color:#" + cores["botaoUltimo"][escuro] + ";border-color:#" + cores["botaoOut"][escuro] + ";cursor:default}";
+				for (var i = 0; i < marcados.length - 1; i++) {
+					if (marcados[i] != num) document.getElementById("botaoAtivo" + marcados[i]).innerHTML = "#vertice" + marcados[i] + "{background-color:#" + cores["botaoIn"][escuro] + ";border-color:#" + cores["botaoOut"][escuro] + "}" +
+						"#vertice" + marcados[i] + ":hover{background-color:#" + cores["botaoOut"][escuro] + ";border-color:#" + cores["botaoIn"][escuro] + "}";
+				}
+			}
+			
+			function colorirLinha(num) {
+				var escuro = document.getElementById("modoescuro").checked ? 1 : 0;
+				document.getElementById("linha" + num).style = "background-color:#" + cores["linhaAtivo"][escuro] + ";border-color:#" + cores["linhaAtivo"][escuro];
+			}
+			
+			function fim(erro) {
+				if (!terminou) {
+					var resultado = "";
+					switch(erro) {
+						case 1:
+							resultado += "Não existe uma linha que ligue esses pontos.";
+							break;
+						case 2:
+							resultado += "A figura deve ser desenhada com apenas um traço.";
+							break;
+						case 3:
+							resultado += "Não seria possível continuar o traço de forma contínua a partir desses pontos.";
+							break;
+						case 4:
+							resultado += "Tempo esgotado.";
+							break;
+					}
+					if (erro > 0) resultado += "\n";
+					resultado += erro == 0 ? "Parabéns!" : "Tente novamente.";
+					resultado += "\n\nClique em qualquer vértice para recomeçar.";
+					if (erro == 0) {
+						sucessos++;
+						if (sucessosUnicos.indexOf(marcados.join(",")) == -1) sucessosUnicos[sucessosUnicos.length] = marcados.join(",");
+					}
+					document.getElementById("sucessos").innerHTML = sucessos;
+					document.getElementById("sucessosUnicos").innerHTML = sucessosUnicos.length;
+					contaTentativa();
+					document.getElementById("botaoAtivo" + marcados[marcados.length - 1]).innerHTML += "#vertice" + marcados[marcados.length - 1] + "{cursor:pointer}";
+					terminou = true;
+					alert(resultado);
+				}
+			}
+			
+			function mudaFigura() {
+				var executar = true;
+				var interromper = false;
+				if (marcados.length > 0 && !terminou) {
+					executar = confirm("Alterar essa opção recomeçará o jogo e contabilizará uma tentativa perdida.\nTem certeza de que deseja continuar?");
+					interromper = executar;
+				}
+				if (executar) {
+					figura = document.getElementById("figura1").checked ? 1 : 2;
+					if (interromper) contaTentativa();
+					novo();
+				} else if (marcados.length > 0 && !terminou) {
+					document.getElementById("figura1").checked = figura == 1;
+					document.getElementById("figura2").checked = figura == 2;
+				}
+			}
+			
+			function limpaLinha() {
+				document.getElementById("vertice6").style.display = "none";
+				document.getElementById("linha9").style.display = "none";
+				document.getElementById("linha10").style.display = "none";
+			}
+			
+			function contaTentativa() {
+				tentativas++;
+				if (tentativasUnicas.indexOf(marcados.join(",")) == -1) tentativasUnicas[tentativasUnicas.length] = marcados.join(",");
+				document.getElementById("tentativas").innerHTML = tentativas;
+				document.getElementById("tentativasUnicas").innerHTML = tentativasUnicas.length;
+			}
+			
+			function cronometroInput() {
+				var executar = true;
+				var interromper = false;
+				if (marcados.length > 0 && !terminou) {
+					executar = confirm("Alterar essa opção recomeçará o jogo e contabilizará uma tentativa perdida.\nTem certeza de que deseja continuar?");
+					interromper = executar;
+				}
+				var checado = document.getElementById("cronometro_i").checked;
+				if (executar) {
+					var erro = false;
+					if (checado) {
+						var aux = prompt("Número de segundos:", segundos);
+						if (parseInt(aux) == aux && parseInt(aux) > 1) {
+							segundos = aux;
+							segundosAnt = segundos;
+						} else erro = true;
+					}
+					if (!erro) {
+						document.getElementById("cronometro_m").innerHTML = checado ? segundos : 0;
+						if (interromper) contaTentativa();
+						novo();
+					} else document.getElementById("cronometro_i").checked = !checado;
+				} else if (marcados.length > 0 && !terminou) document.getElementById("cronometro_i").checked = !checado;
+			}
+			
+			function cronometroMain() {
+				setTimeout(function() {
+					if (!terminou && document.getElementById("cronometro_i").checked) {
+						segundos--;
+						document.getElementById("cronometro_m").innerHTML = segundos;
+						if (segundos == 0) fim(4);
+						cronometroMain();
+					}
+				}, 1000);
+			}
+		</script>
+	</head>
+	<body>
+		<hr class = "linha1" id = "linha1" />
+		<hr class = "linha2" id = "linha2" />
+		<hr class = "linha3" id = "linha3" />
+		<hr class = "linha4" id = "linha4" />
+		<hr class = "linha5" id = "linha5" />
+		<hr class = "linha6" id = "linha6" />
+		<hr class = "linha7" id = "linha7" />
+		<hr class = "linha8" id = "linha8" />
+		<hr class = "linha9" id = "linha9" />
+		<hr class = "linha10" id = "linha10" />
+		<div class = "vertice" id = "vertice1" onclick = "main(1);" onmouseover = "criaLinhaImaginaria(1);" onmouseout = "destroiLinhaImaginaria();"></div>
+		<div class = "vertice" id = "vertice2" onclick = "main(2);" onmouseover = "criaLinhaImaginaria(2);" onmouseout = "destroiLinhaImaginaria();"></div>
+		<div class = "vertice" id = "vertice3" onclick = "main(3);" onmouseover = "criaLinhaImaginaria(3);" onmouseout = "destroiLinhaImaginaria();"></div>
+		<div class = "vertice" id = "vertice4" onclick = "main(4);" onmouseover = "criaLinhaImaginaria(4);" onmouseout = "destroiLinhaImaginaria();"></div>
+		<div class = "vertice" id = "vertice5" onclick = "main(5);" onmouseover = "criaLinhaImaginaria(5);" onmouseout = "destroiLinhaImaginaria();"></div>
+		<div class = "vertice" id = "vertice6" onclick = "main(6);" onmouseover = "criaLinhaImaginaria(6);" onmouseout = "destroiLinhaImaginaria();"></div>
+		<div class = "informacoes">
+			O objetivo desse jogo é ligar os pontos de maneira a formar a figura representada, usando, para isso, apenas um traço contínuo.
+			<br />
+			Boa sorte!
+			<br /><br />
+			<input type = "radio" name = "figura" id = "figura1" onchange = "mudaFigura();" checked >
+				<label for = "figura1">Figura 1</label>
+			</input>
+			<br />
+			<input type = "radio" name = "figura" id = "figura2" onchange = "mudaFigura();">
+				<label for = "figura2">Figura 2</label>
+			</input>
+			<br /><br />
+			<input type = "checkbox" id = "modoescuro" onchange = "colorir();">
+				<label for = "modoescuro">Modo escuro</label>
+			</input>
+			<br />
+			<input type = "checkbox" id = "cronometro_i" onchange = "cronometroInput();" checked >
+				<label for = "cronometro_i">Usar cronômetro</label>
+			</input>
+			<br />
+			<input type = "checkbox" id = "dicas" checked >
+				<label for = "dicas">Mostrar dicas</label>
+			</input>
+			<br /><br />
+			Segundos restantes:
+			<span id = "cronometro_m">0</span>
+			<br /><br />
+			Tentativas:
+			<span id = "tentativas">0</span>
+			<br />
+			Tentativas únicas:
+			<span id = "tentativasUnicas">0</span>
+			<br />
+			Sucessos:
+			<span id = "sucessos">0</span>
+			<br />
+			Sucessos únicos:
+			<span id = "sucessosUnicos">0</span>
+		</div>
+	</body>
+</html>
